@@ -1,79 +1,88 @@
 <?php
-session_start(); // enables $_SESSION
-
-if (!isset($_SESSION['entries'])) {
-  $_SESSION['entries'] = []; // init once per session
-}
-
-$errors = [];
+// Simple self-posting PHP page that renders the form and the result.
+$resultHtml = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+  // Read + trim inputs
   $name  = trim($_POST['name']  ?? '');
   $email = trim($_POST['email'] ?? '');
   $city  = trim($_POST['city']  ?? '');
 
-  if ($name === '' || $email === '' || $city === '') {
-    $errors[] = 'Please fill in all fields!';
-  } else {
-    $_SESSION['entries'][] = [
-      'name'  => $name,
-      'email' => $email,
-      'city'  => $city
-    ];
-    // clear posted values so inputs appear empty
-    $_POST = [];
-  }
+  // Escape for safe HTML output
+  $ename  = htmlspecialchars($name,  ENT_QUOTES, 'UTF-8');
+  $eemail = htmlspecialchars($email, ENT_QUOTES, 'UTF-8');
+  $ecity  = htmlspecialchars($city,  ENT_QUOTES, 'UTF-8');
+
+  // Build the result block
+  $newRecord = <<<HTML
+    <div class="border p-3 bg-white rounded">
+      <strong>Name:</strong> *{$ename}*<br>
+      <strong>Email:</strong> *{$eemail}*<br>
+      <strong>City:</strong> *{$ecity}*
+    </div>
+  HTML;
+
+    // Append to previous data if submitted in same load
+  $resultHtml = $_POST['previous'] . $newRecord;
 }
-function h($s){ return htmlspecialchars($s ?? '', ENT_QUOTES, 'UTF-8'); }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>PHP Registration Form with no data persistence</title>
+  <title>Bootstrap Form Example (PHP)</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
 </head>
 <body class="bg-light">
+
 <div class="container mt-5">
   <div class="card shadow-sm p-4">
     <h3 class="mb-4 text-primary">Registration Form</h3>
 
-    <?php if ($errors): ?>
-      <div class="alert alert-warning"><?= h(implode(' ', $errors)) ?></div>
-    <?php endif; ?>
+    <form id="myForm" method="POST" action="">
+      <div class="mb-3">
+        <label for="name" class="form-label">Name</label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          class="form-control"
+          placeholder="Enter your name">
+      </div>
 
-    <form method="POST" action="">
       <div class="mb-3">
-        <label class="form-label" for="name">Name</label>
-        <input class="form-control" id="name" name="name" value="<?= h($_POST['name'] ?? '') ?>">
+        <label for="email" class="form-label">Email</label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          class="form-control"
+          placeholder="Enter your email">
       </div>
+
       <div class="mb-3">
-        <label class="form-label" for="email">Email</label>
-        <input class="form-control" id="email" name="email" type="email" value="<?= h($_POST['email'] ?? '') ?>">
+        <label for="city" class="form-label">City</label>
+        <input
+          type="text"
+          id="city"
+          name="city"
+          class="form-control"
+          placeholder="Enter your city">
       </div>
-      <div class="mb-3">
-        <label class="form-label" for="city">City</label>
-        <input class="form-control" id="city" name="city" value="<?= h($_POST['city'] ?? '') ?>">
-      </div>
-      <button class="btn btn-primary w-100" type="submit">Submit</button>
+      <!-- Hidden field to keep previously displayed data -->
+      <input type="hidden" name="previous" value="<?= htmlspecialchars($resultHtml ?? '', ENT_QUOTES, 'UTF-8') ?>">
+
+      <button type="submit" class="btn btn-primary w-100">Submit</button>
     </form>
 
     <div class="mt-4">
-      <h5>Submitted Data (this session only):</h5>
+      <h5>Submitted Data:</h5>
       <div id="output">
-        <?php if (empty($_SESSION['entries'])): ?>
-          <div class="text-muted">No entries yet.</div>
-        <?php else: foreach ($_SESSION['entries'] as $r): ?>
-          <div class="border p-3 bg-white rounded mb-2">
-            <strong>Name:</strong> <?= h($r['name']) ?><br>
-            <strong>Email:</strong> <?= h($r['email']) ?><br>
-            <strong>City:</strong> <?= h($r['city']) ?>
-          </div>
-        <?php endforeach; endif; ?>
+        <?= $resultHtml ?>
       </div>
     </div>
-
   </div>
 </div>
+
 </body>
 </html>
